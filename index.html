@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Badminton Scoreboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 20px;
+        }
+        .scoreboard {
+            margin: 20px auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            max-width: 800px;
+        }
+        .team {
+            flex: 1;
+            text-align: center;
+            border: 2px solid #ccc;
+            padding: 10px;
+            margin: 0 10px;
+            border-radius: 10px;
+        }
+        .team.left {
+            text-align: right;
+        }
+        .team.right {
+            text-align: left;
+        }
+        .score {
+            font-size: 48px;
+            margin: 10px;
+        }
+        .set {
+            font-size: 24px;
+            color: #555;
+        }
+        .controls {
+            margin: 10px;
+        }
+        button {
+            font-size: 16px;
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button.score-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        button.score-btn:hover {
+            background-color: #45a049;
+        }
+        button.set-btn {
+            background-color: #2196F3;
+            color: white;
+        }
+        button.set-btn:hover {
+            background-color: #1976D2;
+        }
+        .timer {
+            font-size: 36px;
+            margin-top: 10px;
+            border: 2px solid #ccc;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .start-reset {
+            margin: 20px;
+            flex-basis: 100%;
+        }
+        button.start {
+            background-color: #4CAF50;
+            color: white;
+        }
+        button.reset {
+            background-color: #f44336;
+            color: white;
+        }
+        button.stop {
+            background-color: #FF9800;
+            color: white;
+        }
+        .header {
+            margin: 20px 0;
+            font-size: 48px;
+            font-weight: bold;
+        }
+        .timer-section {
+            margin-top: 20px;
+        }
+        .scoreboard-inner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+        }
+        .button-row {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        .button-row button {
+            margin-right: 10px;
+        }
+        .center-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        .middle-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        #timeInput {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="scoreboard">
+        <!-- Team A Section (ด้านซ้าย) -->
+        <div class="team left" id="teamA">
+            <div class="team-name">Team A</div>
+            <div class="score" id="scoreA">0</div>
+            <div class="set" id="setA">Set: 0</div>
+            <div class="button-row">
+                <button class="score-btn" onclick="updateScore('A', 1)">+1</button>
+                <button class="score-btn" onclick="updateScore('A', -1)">-1</button>
+            </div>
+            <div class="button-row">
+                <button class="set-btn" onclick="updateSet('A', 1)">+Set</button>
+                <button class="set-btn" onclick="updateSet('A', -1)">-Set</button>
+            </div>
+        </div>
+
+        <!-- ส่วนกลาง (ข้อความ "Score", เวลาที่นับถอยหลัง, Set Timer) -->
+        <div class="middle-content">
+            <div class="header">Score</div>
+            <div class="timer" id="timer">00:00</div>
+            <div>
+                <label for="timeInput">Set Timer (seconds): </label>
+                <input type="number" id="timeInput" value="60" min="1">
+            </div>
+        </div>
+
+        <!-- Team B Section (ด้านขวา) -->
+        <div class="team right" id="teamB">
+            <div class="team-name">Team B</div>
+            <div class="score" id="scoreB">0</div>
+            <div class="set" id="setB">Set: 0</div>
+            <div class="button-row">
+                <button class="score-btn" onclick="updateScore('B', 1)">+1</button>
+                <button class="score-btn" onclick="updateScore('B', -1)">-1</button>
+            </div>
+            <div class="button-row">
+                <button class="set-btn" onclick="updateSet('B', 1)">+Set</button>
+                <button class="set-btn" onclick="updateSet('B', -1)">-Set</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="timer-section">
+        <div class="start-reset">
+            <button class="start" onclick="startTimer()">Start</button>
+            <button class="stop" onclick="stopTimer()">Stop</button>
+            <button class="reset" onclick="resetAll()">Reset</button>
+        </div>
+    </div>
+
+    <script>
+        let scores = { A: 0, B: 0 };
+        let sets = { A: 0, B: 0 };
+        let timerInterval;
+        let gameRunning = false;
+        let remainingTime = 60; // Default time to start
+        let timeInputValue = 60; // Store the time input value to resume from
+
+        function updateScore(team, delta) {
+            if (!gameRunning) return; // Don't allow updates if game is stopped
+
+            scores[team] = Math.max(0, scores[team] + delta);
+            document.getElementById(`score${team}`).textContent = scores[team];
+            
+            // Check if a team wins by score
+            if (scores[team] === 21) {
+                alert(`${team} wins by score!`);
+                stopTimer();
+            }
+        }
+
+        function updateSet(team, delta) {
+            if (!gameRunning) return; // Don't allow updates if game is stopped
+
+            sets[team] = Math.max(0, sets[team] + delta);
+            document.getElementById(`set${team}`).textContent = `Set: ${sets[team]}`;
+            
+            // Check if a team wins by set
+            if (sets[team] === 3) {
+                alert(`${team} wins by set!`);
+                stopTimer();
+            }
+        }
+
+        function startTimer() {
+            if (gameRunning) return; // Prevent starting a new timer if game is already running
+            gameRunning = true;
+
+            clearInterval(timerInterval);
+            const timeInput = document.getElementById('timeInput').value;
+            timeInputValue = parseInt(timeInput, 10);
+            remainingTime = timeInputValue;
+
+            function updateTimerDisplay() {
+                const minutes = String(Math.floor(remainingTime / 60)).padStart(2, '0');
+                const seconds = String(remainingTime % 60).padStart(2, '0');
+                document.getElementById('timer').textContent = `${minutes}:${seconds}`;
+            }
+
+            updateTimerDisplay();
+            timerInterval = setInterval(() => {
+                if (remainingTime > 0) {
+                    remainingTime--;
+                    updateTimerDisplay();
+                } else {
+                    clearInterval(timerInterval);
+                    alert('Time is up!');
+                    stopTimer();
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            // Only stop the timer without resetting
+            gameRunning = false;
+            clearInterval(timerInterval);
+        }
+
+        function resetAll() {
+            clearInterval(timerInterval);
+            gameRunning = false;
+            scores = { A: 0, B: 0 };
+            sets = { A: 0, B: 0 };
+            remainingTime = timeInputValue; // Reset to original time input value
+            document.getElementById('scoreA').textContent = 0;
+            document.getElementById('scoreB').textContent = 0;
+            document.getElementById('setA').textContent = 'Set: 0';
+            document.getElementById('setB').textContent = 'Set: 0';
+            document.getElementById('timer').textContent = '00:00';
+            document.getElementById('timeInput').value = timeInputValue;
+
+            // Enable all buttons after reset
+            document.querySelectorAll('button').forEach(button => button.disabled = false);
+        }
+    </script>
+
+</body>
+</html>
